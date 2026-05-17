@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pendingList = document.getElementById('pending-list');
     const paidList = document.getElementById('paid-list');
 
-    // CONFIGURACIÓN DE LA API (Ya integrada permanentemente)
+    // CONFIGURACIÓN DE LA API (Clave fija integrada)
     const apiKey = "K85959877288957"; 
 
     let clientes = JSON.parse(localStorage.getItem('auto_clientes')) || [];
@@ -73,12 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (matchCliente) cliente = matchCliente[1].trim();
             const matchMonto = text.match(/TOTAL COPS\s*([\d.,]+)/i);
             if (matchMonto) monto = matchMonto[1].replace(/[^0-9.]/g, '');
-        }
-
-        // Si los buscadores específicos no pescan el número, este busca el último valor numérico largo
-        if (!monto) {
-            const montosEncontrados = text.match(/\b\d{1,3}([.,]\d{3})+(?!\b)/g);
-            if (montosEncontrados) monto = montosEncontrados[montosEncontrados.length - 1];
         }
 
         clientInput.value = cliente.toUpperCase();
