@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Facturas Exacto</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Gestor de Facturas 📑</h1>
+        </header>
+
+        <section class="ocr-section">
+            <h2>1. Pegar Texto de la Factura</h2>
+            <p class="instruction">Usa Google Lens o tu iPhone para copiar el texto de la imagen y pégalo aquí:</p>
+            
+            <textarea id="invoice-text" rows="5" placeholder="Pega el texto aquí..."></textarea>
+            
+            <div class="button-group">
+                <button type="button" id="btn-miracle" class="btn-format">Formato Miracle</button>
+                <button type="button" id="btn-bora" class="btn-format">Formato Bora Lens</button>
+            </div>
+            
+            <div class="form-invoice">
+                <label>Cliente:</label>
+                <input type="text" id="invoice-client" placeholder="Nombre del cliente">
+
+                <label>Proveedor:</label>
+                <input type="text" id="invoice-provider" placeholder="Proveedor">
+                
+                <label>Monto Total ($):</label>
+                <input type="text" id="invoice-amount" placeholder="Monto ($)">
+                
+                <button type="button" id="add-invoice-btn" class="btn-success">Confirmar y Guardar Factura</button>
+            </div>
+        </section>
+
+        <hr>
+
+        <section class="lists-section">
+            <h2>Historial de Cuentas 🔍</h2>
+            <label for="filter-client">Filtrar por Cliente:</label>
+            <select id="filter-client">
+                <option value="todos">Todos los clientes</option>
+            </select>
+
+            <h3 class="list-title pending">Por Pagar ⏳</h3>
+            <ul id="pending-list" class="invoice-list"></ul>
+
+            <h3 class="list-title paid">Canceladas ✅</h3>
+            <ul id="paid-list" class="invoice-list"></ul>
+        </section>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
