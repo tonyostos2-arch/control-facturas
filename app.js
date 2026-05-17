@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const paidList = document.getElementById('paid-list');
 
     // CONFIGURACIÓN DE LA API (Pega aquí tu clave entre las comillas)
-    const apiKey = K85959877288957; 
+    const apiKey = "K85959877288957"; 
 
     let clientes = JSON.parse(localStorage.getItem('auto_clientes')) || [];
     let facturas = JSON.parse(localStorage.getItem('auto_facturas')) || [];
