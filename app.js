@@ -9,31 +9,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const pendingList = document.getElementById('pending-list');
     const paidList = document.getElementById('paid-list');
 
-    // CONFIGURACIÓN DE LA API (Pega aquí tu clave entre las comillas)
+    // CONFIGURACIÓN DE LA API (Pega tu clave dentro de las comillas)
     const apiKey = "K85959877288957"; 
 
     let clientes = JSON.parse(localStorage.getItem('auto_clientes')) || [];
     let facturas = JSON.parse(localStorage.getItem('auto_facturas')) || [];
 
+    // DETECTA LA FOTO AL INSTANTE
     fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
         statusDiv.className = "status processing";
-        statusDiv.innerText = "Procesando y optimizando imagen...";
+        statusDiv.innerText = "Enviando imagen al servidor de IA...";
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('language', 'spa');
+        formData.append('isOverlayRequired', 'false');
+        formData.append('scale', 'true');
 
         try {
-            // COMPRESOR Y CONVERTIDOR AUTOMÁTICO A JPG
-            const optimizedBlob = await optimizarImagen(file);
-
-            statusDiv.innerText = "Enviando imagen al servidor de IA...";
-
-            const formData = new FormData();
-            formData.append('file', optimizedBlob, 'factura.jpg');
-            formData.append('language', 'spa');
-            formData.append('isOverlayRequired', 'false');
-            formData.append('scale', 'true');
-
             const response = await fetch('https://api.ocr.space/parse/image', {
                 method: 'POST',
                 headers: { 'apikey': apiKey },
@@ -48,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusDiv.innerText = "¡Lectura completada con éxito!";
                 procesarTextoFactura(extractedText);
             } else {
-                throw new Error(data.ErrorMessage || "No se pudo extraer texto.");
+                throw new Error(data.ErrorMessage || "No se pudo extraer texto de la imagen.");
             }
 
         } catch (err) {
@@ -58,39 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // FUNCIÓN INTERNA QUE FORMATEA LA FOTO DEL CELULAR
-    function optimizarImagen(file) {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-
-                    // Reducimos el tamaño si es una foto gigantesca de alta resolución
-                    const max_size = 1600;
-                    if (width > height) {
-                        if (width > max_size) { height *= max_size / width; width = max_size; }
-                    } else {
-                        if (height > max_size) { width *= max_size / height; height = max_size; }
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    // Lo exporta obligatoriamente como JPG ligero
-                    canvas.toBlob((blob) => { resolve(blob); }, 'image/jpeg', 0.75);
-                };
-            };
-        });
-    }
-
+    // LÓGICA DE DETECCIÓN AUTOMÁTICA
     function procesarTextoFactura(text) {
         let cliente = "REVISAR MANUALMENTE";
         let proveedor = "PROVEEDOR DESCONOCIDO";
@@ -121,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
         amountInput.value = monto;
     }
 
+    // GUARDAR EN EL HISTORIAL
     addInvoiceBtn.addEventListener('click', () => {
         const nombreCliente = clientInput.value.trim();
         const proveedor = providerInput.value.trim();
