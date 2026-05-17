@@ -3,32 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Facturas Exacto</title>
+    <title>Gestor Inteligente de Facturas</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
     <div class="app-container">
         <header>
-            <h1>Gestor de Facturas 📑</h1>
+            <h1>Gestor Inteligente 🤖📑</h1>
         </header>
 
         <section class="ocr-section">
-            <h2>1. Pegar Texto de la Factura</h2>
-            <p class="instruction">Usa Google Lens o tu iPhone para copiar el texto de la imagen y pégalo aquí:</p>
+            <h2>Escanear Factura</h2>
+            <p class="instruction">Toma una foto para detectar automáticamente al cliente, proveedor y monto.</p>
             
-            <textarea id="invoice-text" rows="5" placeholder="Pega el texto aquí..."></textarea>
-            
-            <div class="button-group">
-                <button type="button" id="btn-miracle" class="btn-format">Formato Miracle</button>
-                <button type="button" id="btn-bora" class="btn-format">Formato Bora Lens</button>
-            </div>
+            <input type="file" id="invoice-file" accept="image/*" capture="environment">
+            <div id="status" class="status">Esperando fotografía...</div>
             
             <div class="form-invoice">
                 <label>Cliente:</label>
                 <input type="text" id="invoice-client" placeholder="Nombre del cliente">
 
-                <label>Proveedor:</label>
-                <input type="text" id="invoice-provider" placeholder="Proveedor">
+                <label>Proveedor / Emisor:</label>
+                <input type="text" id="invoice-provider" placeholder="¿Quién emite la factura?">
                 
                 <label>Monto Total ($):</label>
                 <input type="text" id="invoice-amount" placeholder="Monto ($)">
@@ -41,6 +38,7 @@
 
         <section class="lists-section">
             <h2>Historial de Cuentas 🔍</h2>
+            
             <label for="filter-client">Filtrar por Cliente:</label>
             <select id="filter-client">
                 <option value="todos">Todos los clientes</option>
@@ -53,6 +51,7 @@
             <ul id="paid-list" class="invoice-list"></ul>
         </section>
     </div>
+
     <script src="app.js"></script>
 </body>
 </html>
