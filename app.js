@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // RASTREADOR AVANZADO DE TEXTO Y MONTOS
     function procesarTextoFactura(text) {
-        let cliente = "REVISAR MANUALMENE";
+        let cliente = "REVISAR MANUALMENTE";
         let proveedor = "PROVEEDOR DESCONOCIDO";
         let monto = "";
 
