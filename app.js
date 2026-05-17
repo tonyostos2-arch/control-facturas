@@ -9,13 +9,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const pendingList = document.getElementById('pending-list');
     const paidList = document.getElementById('paid-list');
 
-    // CONFIGURACIÓN DE LA API (Pega tu clave dentro de las comillas)
+    // CONFIGURACIÓN DE LA API (Asegúrate de dejar tu clave real entre las comillas)
     const apiKey = "K85959877288957"; 
 
     let clientes = JSON.parse(localStorage.getItem('auto_clientes')) || [];
     let facturas = JSON.parse(localStorage.getItem('auto_facturas')) || [];
 
-    // DETECTA LA FOTO AL INSTANTE
+    // DETECTA CUANDO TOMAS LA FOTO Y ACTIVA LA IA VIA API EXTERNA
     fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -54,30 +54,52 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // LÓGICA DE DETECCIÓN AUTOMÁTICA
+    // RASTREADOR AVANZADO DE TEXTO Y MONTOS
     function procesarTextoFactura(text) {
-        let cliente = "REVISAR MANUALMENTE";
+        let cliente = "REVISAR MANUALMENE";
         let proveedor = "PROVEEDOR DESCONOCIDO";
         let monto = "";
 
         const textoCompleto = text.toUpperCase();
 
+        // 1. Detectar Proveedor y Cliente
         if (textoCompleto.includes("MIRACLE")) {
             proveedor = "LABORATORIO OPTICO MIRACLE SAS";
             const matchCliente = text.match(/CLIENTE:\s*(.*)/i);
             if (matchCliente) cliente = matchCliente[1].trim();
-            const matchMonto = text.match(/TOTAL A PAGAR\s*\$?[\s]*([\d.,]+)/i);
-            if (matchMonto) monto = matchMonto[1].replace(/[^0-9.]/g, '');
         } 
         else if (textoCompleto.includes("BORA")) {
             proveedor = "BORA LENS SAS";
             const matchCliente = text.match(/Adquiriente\s*(.*)/i);
             if (matchCliente) cliente = matchCliente[1].trim();
-            const matchMonto = text.match(/TOTAL COPS\s*([\d.,]+)/i);
-            if (matchMonto) monto = matchMonto[1].replace(/[^0-9.]/g, '');
-        } else {
-            const matchMontoGen = text.match(/(TOTAL|PAGAR|\$)\s*:?\s*([\d.,]+)/i);
-            if (matchMontoGen) monto = matchMontoGen[2].replace(/[^0-9.]/g, '');
+        }
+
+        // 2. Rastreador de montos numéricos inteligente
+        const expresionesMonto = [
+            /TOTAL COPS\s*([\d.,]+)/i,
+            /TOTAL A PAGAR\s*\$?[\s]*([\d.,]+)/i,
+            /TOTAL\s*:?\s*\$?[\s]*([\d.,]+)/i,
+            /VALOR TOTAL\s*([\d.,]+)/i
+        ];
+
+        for (let regex of expresionesMonto) {
+            const matchMonto = text.match(regex);
+            if (matchMonto && matchMonto[1]) {
+                let numeroLimpio = matchMonto[1].replace(/[^0-9.,]/g, '');
+                if (numeroLimpio.endsWith(",00") || numeroLimpio.endsWith(".00")) {
+                    numeroLimpio = numeroLimpio.slice(0, -3);
+                }
+                monto = numeroLimpio;
+                break; 
+            }
+        }
+
+        // Si falla el patrón de texto de arriba, extrae el último número contundente del documento
+        if (!monto) {
+            const todosLosMontos = text.match(/\b\d{1,3}([.,]\d{3})+(?:\b|(?=[A-Za-z]))/g);
+            if (todosLosMontos && todosLosMontos.length > 0) {
+                monto = todosLosMontos[todosLosMontos.length - 1]; 
+            }
         }
 
         clientInput.value = cliente.toUpperCase();
@@ -85,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         amountInput.value = monto;
     }
 
-    // GUARDAR EN EL HISTORIAL
+    // GUARDAR EN EL HISTORIAL LOCAL
     addInvoiceBtn.addEventListener('click', () => {
         const nombreCliente = clientInput.value.trim();
         const proveedor = providerInput.value.trim();
