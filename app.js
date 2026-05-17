@@ -9,13 +9,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const pendingList = document.getElementById('pending-list');
     const paidList = document.getElementById('paid-list');
 
-    // Tu API Key fija e integrada
+    // CONFIGURACIÓN DE LA API (Clave integrada)
     const apiKey = "K85959877288957"; 
 
     let clientes = JSON.parse(localStorage.getItem('auto_clientes')) || [];
     let facturas = JSON.parse(localStorage.getItem('auto_facturas')) || [];
 
-    // LECTURA AUTOMÁTICA AL TOMAR LA FOTO
+    // PROCESAR IMAGEN AL TOMAR LA FOTO
     fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusDiv.innerText = "¡Lectura completada con éxito!";
                 procesarTextoFactura(extractedText);
             } else {
-                throw new Error(data.ErrorMessage || "No se pudo extraer texto.");
+                throw new Error(data.ErrorMessage || "Error en formato de imagen.");
             }
 
         } catch (err) {
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // PROCESADOR DE DATOS (CLIENTE, PROVEEDOR Y MONTO)
+    // EXTRACTOR AUTOMÁTICO SEGURO
     function procesarTextoFactura(text) {
         let cliente = "REVISAR MANUALMENTE";
         let proveedor = "PROVEEDOR DESCONOCIDO";
@@ -62,44 +62,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const textoCompleto = text.toUpperCase();
 
-        // 1. Identificar Proveedor y Cliente
+        // 1. Detección de Proveedor y Cliente
         if (textoCompleto.includes("MIRACLE")) {
             proveedor = "LABORATORIO OPTICO MIRACLE SAS";
             const matchCliente = text.match(/CLIENTE:\s*(.*)/i);
             if (matchCliente) cliente = matchCliente[1].trim();
+            
+            // Extractor de monto para Miracle
+            const matchMonto = text.match(/TOTAL A PAGAR\s*\$?[\s]*([\d.,]+)/i);
+            if (matchMonto) monto = matchMonto[1].replace(/[^0-9.]/g, '');
         } 
         else if (textoCompleto.includes("BORA")) {
             proveedor = "BORA LENS SAS";
             const matchCliente = text.match(/Adquiriente\s*(.*)/i);
             if (matchCliente) cliente = matchCliente[1].trim();
+            
+            // Extractor de monto alternativo para el formato de Bora Lens
+            const matchMontoBora = text.match(/TOTAL[\s\S]*?([\d.,]+)/i);
+            if (matchMontoBora) monto = matchMontoBora[1].replace(/[^0-9.]/g, '');
         }
 
-        // 2. Extraer el Monto Total (Buscador seguro sin errores de sintaxis)
-        // Busca "TOTAL COPS", "TOTAL A PAGAR" o simplemente "TOTAL" seguido de números
-        const lineas = text.split('\n');
-        for (let linea of lineas) {
-            const lineaUpper = linea.toUpperCase();
-            if (lineaUpper.includes("TOTAL")) {
-                const encontrado = linea.match(/[\d.,]+/);
-                if (encontrado) {
-                    let numero = encontrado[0].replace(/[^0-9.,]/g, '');
-                    // Limpieza básica si termina en centavos ,00
-                    if (numero.endsWith(",00") || numero.endsWith(".00")) {
-                        numero = numero.slice(0, -3);
-                    }
-                    monto = numero;
-                    break; 
-                }
-            }
+        // Limpieza rápida del número si termina en ceros decimales
+        if (monto.endsWith(".00") || monto.endsWith(",00")) {
+            monto = monto.slice(0, -3);
         }
 
-        // Llenar los campos automáticamente en la pantalla
+        // Inyectar datos en el formulario de la pantalla
         clientInput.value = cliente.toUpperCase();
         providerInput.value = proveedor;
         amountInput.value = monto;
     }
 
-    // GUARDAR EN EL HISTORIAL
+    // AÑADIR REGISTRO AL HISTORIAL
     addInvoiceBtn.addEventListener('click', () => {
         const nombreCliente = clientInput.value.trim();
         const proveedor = providerInput.value.trim();
