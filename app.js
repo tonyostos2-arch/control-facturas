@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const invoiceTextArea = document.getElementById('invoice-text');
-    const btnMiracle = document.getElementById('btn-miracle');
-    const btnBora = document.getElementById('btn-bora');
+    const fileInput = document.getElementById('invoice-file');
+    const statusDiv = document.getElementById('status');
     const clientInput = document.getElementById('invoice-client');
     const providerInput = document.getElementById('invoice-provider');
     const amountInput = document.getElementById('invoice-amount');
@@ -10,51 +9,90 @@ document.addEventListener('DOMContentLoaded', () => {
     const pendingList = document.getElementById('pending-list');
     const paidList = document.getElementById('paid-list');
 
+    // CONFIGURACIÓN DE LA API (Pega aquí tu clave entre las comillas)
+    const apiKey = K85959877288957; 
+
     let clientes = JSON.parse(localStorage.getItem('auto_clientes')) || [];
     let facturas = JSON.parse(localStorage.getItem('auto_facturas')) || [];
 
-    btnMiracle.addEventListener('click', () => {
-        const text = invoiceTextArea.value;
-        if (!text.trim()) return alert("Por favor, pega el texto primero.");
-        
-        let cliente = "REVISAR MANUAL";
-        let monto = "";
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
-        const matchCliente = text.match(/CLIENTE:\s*(.*)/i);
-        if (matchCliente) cliente = matchCliente[1].trim();
+        statusDiv.className = "status processing";
+        statusDiv.innerText = "Enviando imagen al servidor de IA...";
 
-        const matchMonto = text.match(/TOTAL A PAGAR\s*\$?[\s]*([\d.,]+)/i);
-        if (matchMonto) monto = matchMonto[1].replace(/[^0-9.]/g, '');
+        // Preparamos la imagen para enviarla de forma segura
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('language', 'spa');
+        formData.append('isOverlayRequired', 'false');
+        formData.append('scale', 'true');
 
-        clientInput.value = cliente.toUpperCase();
-        providerInput.value = "LABORATORIO OPTICO MIRACLE SAS";
-        amountInput.value = monto;
+        try {
+            const response = await fetch('https://api.ocr.space/parse/image', {
+                method: 'POST',
+                headers: { 'apikey': apiKey },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.OCRExitCode === 1 && data.ParsedResults && data.ParsedResults.length > 0) {
+                const extractedText = data.ParsedResults[0].ParsedText;
+                statusDiv.className = "status success";
+                statusDiv.innerText = "¡Lectura completada con éxito!";
+                procesarTextoFactura(extractedText);
+            } else {
+                throw new Error(data.ErrorMessage || "No se pudo extraer texto de la imagen.");
+            }
+
+        } catch (err) {
+            console.error(err);
+            statusDiv.className = "status error";
+            statusDiv.innerText = "Error: El servidor no pudo procesar esta imagen.";
+        }
     });
 
-    btnBora.addEventListener('click', () => {
-        const text = invoiceTextArea.value;
-        if (!text.trim()) return alert("Por favor, pega el texto primero.");
-        
-        let cliente = "REVISAR MANUAL";
+    function procesarTextoFactura(text) {
+        let cliente = "REVISAR MANUALMENTE";
+        let proveedor = "PROVEEDOR DESCONOCIDO";
         let monto = "";
 
-        const matchCliente = text.match(/Adquiriente\s*(.*)/i);
-        if (matchCliente) cliente = matchCliente[1].trim();
+        const textoCompleto = text.toUpperCase();
 
-        const matchMonto = text.match(/TOTAL COPS\s*([\d.,]+)/i);
-        if (matchMonto) monto = matchMonto[1].replace(/[^0-9.]/g, '');
+        if (textoCompleto.includes("MIRACLE")) {
+            proveedor = "LABORATORIO OPTICO MIRACLE SAS";
+            const matchCliente = text.match(/CLIENTE:\s*(.*)/i);
+            if (matchCliente) cliente = matchCliente[1].trim();
+            const matchMonto = text.match(/TOTAL A PAGAR\s*\$?[\s]*([\d.,]+)/i);
+            if (matchMonto) monto = matchMonto[1].replace(/[^0-9.]/g, '');
+        } 
+        else if (textoCompleto.includes("BORA")) {
+            proveedor = "BORA LENS SAS";
+            const matchCliente = text.match(/Adquiriente\s*(.*)/i);
+            if (matchCliente) cliente = matchCliente[1].trim();
+            const matchMonto = text.match(/TOTAL COPS\s*([\d.,]+)/i);
+            if (matchMonto) monto = matchMonto[1].replace(/[^0-9.]/g, '');
+        } else {
+            // Extractor genérico por si es otro proveedor
+            const matchMontoGen = text.match(/(TOTAL|PAGAR|\$)\s*:?\s*([\d.,]+)/i);
+            if (matchMontoGen) monto = matchMontoGen[2].replace(/[^0-9.]/g, '');
+        }
 
         clientInput.value = cliente.toUpperCase();
-        providerInput.value = "BORA LENS SAS";
+        providerInput.value = proveedor;
         amountInput.value = monto;
-    });
+    }
 
     addInvoiceBtn.addEventListener('click', () => {
         const nombreCliente = clientInput.value.trim();
         const proveedor = providerInput.value.trim();
         const monto = amountInput.value.trim();
 
-        if (!nombreCliente || !proveedor || !monto) return alert("Llena los campos primero.");
+        if (!nombreCliente || !proveedor || !monto) {
+            return alert("Por favor, llena los campos antes de guardar.");
+        }
 
         let clienteExistente = clientes.find(c => c.nombre.toLowerCase() === nombreCliente.toLowerCase());
         if (!clienteExistente) {
@@ -62,8 +100,16 @@ document.addEventListener('DOMContentLoaded', () => {
             clientes.push(clienteExistente);
         }
 
-        facturas.push({ id: 'fac_' + Date.now(), clienteId: clienteExistente.id, proveedor, monto, pagada: false });
-        invoiceTextArea.value = ''; clientInput.value = ''; providerInput.value = ''; amountInput.value = '';
+        facturas.push({
+            id: 'fac_' + Date.now(),
+            clienteId: clienteExistente.id,
+            proveedor: proveedor,
+            monto: monto,
+            pagada: false
+        });
+        
+        fileInput.value = ''; clientInput.value = ''; providerInput.value = ''; amountInput.value = '';
+        statusDiv.className = "status"; statusDiv.innerText = "Esperando fotografía...";
         guardarYActualizar();
     });
 
@@ -73,7 +119,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.eliminarFactura = (id) => {
-        if (confirm("¿Eliminar?")) { facturas = facturas.filter(f => f.id !== id); guardarYActualizar(); }
+        if (confirm("¿Eliminar esta factura?")) {
+            facturas = facturas.filter(f => f.id !== id);
+            guardarYActualizar();
+        }
     };
 
     filterClientSelect.addEventListener('change', () => actualizarListasFacturas());
@@ -81,11 +130,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function guardarYActualizar() {
         localStorage.setItem('auto_clientes', JSON.stringify(clientes));
         localStorage.setItem('auto_facturas', JSON.stringify(facturas));
+        
+        const filterValueAnterior = filterClientSelect.value;
         filterClientSelect.innerHTML = '<option value="todos">Todos los clientes</option>';
         clientes.forEach(c => {
             const opt = document.createElement('option'); opt.value = c.id; opt.textContent = c.nombre;
             filterClientSelect.appendChild(opt);
         });
+        filterClientSelect.value = filterValueAnterior;
         actualizarListasFacturas();
     }
 
@@ -97,7 +149,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const li = document.createElement('li');
             li.className = `invoice-item ${f.pagada ? 'paid-item' : 'pending-item'}`;
             li.innerHTML = `
-                <div class="invoice-info"><span>👤 ${cliente ? cliente.nombre : 'Desconocido'}</span><span><strong>${f.proveedor}</strong></span><span>$ ${f.monto}</span></div>
+                <div class="invoice-info">
+                    <span>👤 ${cliente ? cliente.nombre : 'Desconocido'}</span>
+                    <span><strong>${f.proveedor}</strong></span>
+                    <span>$ ${f.monto}</span>
+                </div>
                 <div class="invoice-actions">
                     <button type="button" class="action-btn" onclick="cambiarEstadoFactura('${f.id}')">${f.pagada ? 'Reabrir' : 'Pagar'}</button>
                     <button type="button" class="delete-btn" onclick="eliminarFactura('${f.id}')">❌</button>
@@ -105,5 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (f.pagada) paidList.appendChild(li); else pendingList.appendChild(li);
         });
     }
+
     guardarYActualizar();
 });
