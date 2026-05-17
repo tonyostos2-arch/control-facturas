@@ -15,9 +15,11 @@
 
         <section class="ocr-section">
             <h2>Escanear Factura</h2>
-            <p class="instruction">Toma una foto para detectar automáticamente al cliente, proveedor y monto.</p>
+            <p class="instruction">Toca el botón para activar la cámara, toma la foto de la factura y el sistema extraerá los datos automáticamente.</p>
             
-            <input type="file" id="invoice-file" accept="image/*" capture="environment">
+            <label for="invoice-file" class="btn-camera-trigger">📷 Tomar Foto Factura</label>
+            <input type="file" id="invoice-file" accept="image/*" capture="environment" style="display: none;">
+            
             <div id="status" class="status">Esperando fotografía...</div>
             
             <div class="form-invoice">
