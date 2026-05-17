@@ -20,16 +20,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!file) return;
 
         statusDiv.className = "status processing";
-        statusDiv.innerText = "Enviando imagen al servidor de IA...";
-
-        // Preparamos la imagen para enviarla de forma segura
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('language', 'spa');
-        formData.append('isOverlayRequired', 'false');
-        formData.append('scale', 'true');
+        statusDiv.innerText = "Procesando y optimizando imagen...";
 
         try {
+            // COMPRESOR Y CONVERTIDOR AUTOMÁTICO A JPG
+            const optimizedBlob = await optimizarImagen(file);
+
+            statusDiv.innerText = "Enviando imagen al servidor de IA...";
+
+            const formData = new FormData();
+            formData.append('file', optimizedBlob, 'factura.jpg');
+            formData.append('language', 'spa');
+            formData.append('isOverlayRequired', 'false');
+            formData.append('scale', 'true');
+
             const response = await fetch('https://api.ocr.space/parse/image', {
                 method: 'POST',
                 headers: { 'apikey': apiKey },
@@ -44,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusDiv.innerText = "¡Lectura completada con éxito!";
                 procesarTextoFactura(extractedText);
             } else {
-                throw new Error(data.ErrorMessage || "No se pudo extraer texto de la imagen.");
+                throw new Error(data.ErrorMessage || "No se pudo extraer texto.");
             }
 
         } catch (err) {
@@ -53,6 +57,39 @@ document.addEventListener('DOMContentLoaded', () => {
             statusDiv.innerText = "Error: El servidor no pudo procesar esta imagen.";
         }
     });
+
+    // FUNCIÓN INTERNA QUE FORMATEA LA FOTO DEL CELULAR
+    function optimizarImagen(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Reducimos el tamaño si es una foto gigantesca de alta resolución
+                    const max_size = 1600;
+                    if (width > height) {
+                        if (width > max_size) { height *= max_size / width; width = max_size; }
+                    } else {
+                        if (height > max_size) { width *= max_size / height; height = max_size; }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Lo exporta obligatoriamente como JPG ligero
+                    canvas.toBlob((blob) => { resolve(blob); }, 'image/jpeg', 0.75);
+                };
+            };
+        });
+    }
 
     function procesarTextoFactura(text) {
         let cliente = "REVISAR MANUALMENTE";
@@ -75,7 +112,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const matchMonto = text.match(/TOTAL COPS\s*([\d.,]+)/i);
             if (matchMonto) monto = matchMonto[1].replace(/[^0-9.]/g, '');
         } else {
-            // Extractor genérico por si es otro proveedor
             const matchMontoGen = text.match(/(TOTAL|PAGAR|\$)\s*:?\s*([\d.,]+)/i);
             if (matchMontoGen) monto = matchMontoGen[2].replace(/[^0-9.]/g, '');
         }
